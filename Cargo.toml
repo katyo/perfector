@@ -1,0 +1,40 @@
+[package]
+name = "perfector"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cpp = "0.5"
+static_assertions = "1"
+
+[dependencies.glam]
+version = "0.29"
+optional = true
+
+[dependencies.nalgebra-glm]
+version = "0.19"
+optional = true
+
+[dependencies.euclid]
+version = "0.22"
+optional = true
+
+[dependencies.ultraviolet]
+version = "0.9"
+features = ["f64"]
+optional = true
+
+[dependencies.vek]
+version = "0.17"
+optional = true
+
+[dev-dependencies]
+nalgebra-glm = "0.19"
+
+[build-dependencies]
+cmake = "0.1"
+cpp_build = "0.5"
+
+[features]
+default = ["all-math"]
+all-math = ["glam", "nalgebra-glm", "euclid", "ultraviolet", "vek"]
