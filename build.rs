@@ -57,7 +57,9 @@ fn main() {
         .include(occt_config.include_dir)
         .build("src/lib.rs");
 
-    println!("cargo:rerun-if-changed=src/lib.rs");
+    println!("cargo:rerun-if-changed=src/*.rs");
+    println!("cargo:rerun-if-changed=src/math/*.rs");
+    println!("cargo:rerun-if-changed=src/brep/*.rs");
 }
 
 #[derive(Default)]
