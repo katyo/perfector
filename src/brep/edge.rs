@@ -1,4 +1,4 @@
-use super::{IsPoint, Point, Shape, Vertex};
+use super::{IsShape, Point, Shape, Vertex};
 use core::mem::size_of;
 use cpp::{cpp, cpp_class};
 use static_assertions::const_assert_eq;
@@ -46,33 +46,10 @@ shape_impls! {
     Edge;
 }
 
-impl core::ops::Deref for Edge {
-    type Target = Shape;
-    fn deref(&self) -> &Self::Target {
-        unsafe {
-            cpp!([self as "const TopoDS_Edge*"] -> &Shape as "const TopoDS_Shape*" {
-                return self;
-            })
-        }
-    }
-}
-
-impl core::ops::DerefMut for Edge {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            cpp!([self as "TopoDS_Edge*"] -> &mut Shape as "TopoDS_Shape*" {
-                return self;
-            })
-        }
-    }
-}
-
-impl<A: IsPoint, B: IsPoint> TryFrom<(&A, &B)> for Edge {
+impl<A: AsRef<Point>, B: AsRef<Point>> TryFrom<(A, B)> for Edge {
     type Error = EdgeError;
-    fn try_from((p1, p2): (&A, &B)) -> Result<Self, Self::Error> {
-        Self::line_from_points(unsafe { &*(p1 as *const _ as *const _) }, unsafe {
-            &*(p2 as *const _ as *const _)
-        })
+    fn try_from((p1, p2): (A, B)) -> Result<Self, Self::Error> {
+        Self::line_from_points(p1.as_ref(), p2.as_ref())
     }
 }
 

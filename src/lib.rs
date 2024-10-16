@@ -57,3 +57,32 @@ mod math;
 
 pub use brep::*;
 pub use math::*;
+
+use core::{marker::PhantomData, mem::ManuallyDrop};
+
+pub struct Ref<'r, T> {
+    inner: ManuallyDrop<T>,
+    _phantom: PhantomData<&'r ()>,
+}
+
+impl<'r, T> Ref<'r, T> {
+    pub(crate) fn from_raw(raw: T) -> Self {
+        Self {
+            inner: ManuallyDrop::new(raw),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<'r, T> core::ops::Deref for Ref<'r, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &*self.inner
+    }
+}
+
+impl<'r, T> AsRef<T> for Ref<'r, T> {
+    fn as_ref(&self) -> &T {
+        &*self.inner
+    }
+}

@@ -1,17 +1,6 @@
-/// A marker trait for types which represents points in 3D
-///
-/// The points is represented as `[f64; 3]`.
-/// Technically any values with size `8*3` bytes may be used as point.
-pub trait IsPoint: Sized {}
+mod transformation;
 
-/// A marker trait for types which represents vectors in 3D
-///
-/// The vectors is represented as `[f64; 3]`.
-/// Technically any values with size `8*3` bytes may be used as vector.
-pub trait IsVector: Sized {}
-
-#[cfg(test)]
-pub use nalgebra_glm::DVec3;
+pub use transformation::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Default)]
 pub struct Point {
@@ -20,79 +9,164 @@ pub struct Point {
     pub z: f64,
 }
 
-impl From<(f64, f64, f64)> for Point {
-    fn from((x, y, z): (f64, f64, f64)) -> Self {
-        Self { x, y, z }
-    }
-}
-
-impl From<Point> for (f64, f64, f64) {
-    fn from(Point { x, y, z }: Point) -> Self {
-        (x, y, z)
-    }
-}
-
-impl From<[f64; 3]> for Point {
-    fn from([x, y, z]: [f64; 3]) -> Self {
-        Self { x, y, z }
-    }
-}
-
-impl From<Point> for [f64; 3] {
-    fn from(Point { x, y, z }: Point) -> Self {
-        [x, y, z]
-    }
-}
-
 impl Point {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
     }
 }
 
-impl IsPoint for Point {}
-
-impl IsPoint for (f64, f64, f64) {}
-impl IsVector for (f64, f64, f64) {}
-impl IsPoint for [f64; 3] {}
-impl IsVector for [f64; 3] {}
-
-#[cfg(feature = "glam")]
-mod glam_impls {
-    use super::*;
-
-    impl IsPoint for glam::f64::DVec3 {}
-    impl IsVector for glam::f64::DVec3 {}
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Default)]
+pub struct Vector {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
-#[cfg(feature = "nalgebra-glm")]
-mod glm_impls {
-    use super::*;
-
-    impl IsPoint for nalgebra_glm::DVec3 {}
-    impl IsVector for nalgebra_glm::DVec3 {}
+impl Vector {
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
+        Self { x, y, z }
+    }
 }
 
-#[cfg(feature = "euclid")]
-mod euclid_impls {
-    use super::*;
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct Quaternion {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub w: f64,
+}
 
-    impl<U> IsPoint for euclid::Point3D<f64, U> {}
-    impl<U> IsVector for euclid::Point3D<f64, U> {}
+impl Default for Quaternion {
+    fn default() -> Self {
+        Self::new(0.0, 0.0, 0.0, 1.0)
+    }
+}
+
+impl Quaternion {
+    pub fn new(x: f64, y: f64, z: f64, w: f64) -> Self {
+        Self { x, y, z, w }
+    }
+}
+
+macro_rules! math_type {
+    ( $( $mtype:ident { $( $(#[$($meta:meta)*])* $({$($par:ident),*})* $type:ty; )* } )* ) => {
+        $(
+            $(
+                $(#[$($meta)*])*
+                impl $(<$($par),*>)* AsRef<$type> for $mtype {
+                    fn as_ref(&self) -> &$type {
+                        unsafe { core::mem::transmute(self) }
+                    }
+                }
+
+                $(#[$($meta)*])*
+                impl $(<$($par),*>)* AsMut<$type> for $mtype {
+                    fn as_mut(&mut self) -> &mut $type {
+                        unsafe { core::mem::transmute(self) }
+                    }
+                }
+
+                $(#[$($meta)*])*
+                impl $(<$($par),*>)* AsRef<$mtype> for $type {
+                    fn as_ref(&self) -> &$mtype {
+                        unsafe { core::mem::transmute(self) }
+                    }
+                }
+
+                $(#[$($meta)*])*
+                impl $(<$($par),*>)* AsMut<$mtype> for $type {
+                    fn as_mut(&mut self) -> &mut $mtype {
+                        unsafe { core::mem::transmute(self) }
+                    }
+                }
+
+                $(#[$($meta)*])*
+                impl $(<$($par),*>)* From<$type> for $mtype {
+                    fn from(val: $type) -> Self {
+                        unsafe { core::mem::transmute(val) }
+                    }
+                }
+
+                $(#[$($meta)*])*
+                impl $(<$($par),*>)* From<$mtype> for $type {
+                    fn from(val: $mtype) -> Self {
+                        unsafe { core::mem::transmute(val) }
+                    }
+                }
+            )*
+        )*
+    }
+}
+
+math_type! {
+    Point {
+        (f64, f64, f64);
+        [f64; 3];
+
+        #[cfg(feature = "glam")]
+        glam::f64::DVec3;
+
+        #[cfg(feature = "nalgebra-glm")]
+        nalgebra_glm::DVec3;
+
+        #[cfg(feature = "euclid")]
+        {U} euclid::Point3D<f64, U>;
+
+        #[cfg(feature = "ultraviolet")]
+        ultraviolet::DVec3;
+
+        #[cfg(feature = "vek")]
+        vek::Vec3<f64>;
+    }
+
+    Vector {
+        (f64, f64, f64);
+        [f64; 3];
+
+        #[cfg(feature = "glam")]
+        glam::f64::DVec3;
+
+        #[cfg(feature = "nalgebra-glm")]
+        nalgebra_glm::DVec3;
+
+        #[cfg(feature = "euclid")]
+        {U} euclid::Point3D<f64, U>;
+
+        #[cfg(feature = "ultraviolet")]
+        ultraviolet::DVec3;
+
+        #[cfg(feature = "vek")]
+        vek::Vec3<f64>;
+    }
+
+    Quaternion {
+        (f64, f64, f64, f64);
+        [f64; 4];
+
+        #[cfg(feature = "glam")]
+        glam::f64::DQuat;
+
+        #[cfg(feature = "nalgebra-glm")]
+        nalgebra_glm::DQuat;
+
+        #[cfg(feature = "euclid")]
+        {U, V} euclid::Rotation3D<f64, U, V>;
+
+        #[cfg(feature = "vek")]
+        vek::Quaternion<f64>;
+    }
 }
 
 #[cfg(feature = "ultraviolet")]
-mod uv_impls {
-    use super::*;
-
-    impl IsPoint for ultraviolet::DVec3 {}
-    impl IsVector for ultraviolet::DVec3 {}
+impl From<ultraviolet::DRotor3> for Quaternion {
+    fn from(val: ultraviolet::DRotor3) -> Self {
+        val.into_quaternion_array().into()
+    }
 }
 
-#[cfg(feature = "vek")]
-mod vek_impls {
-    use super::*;
-
-    impl IsPoint for vek::Vec3<f64> {}
-    impl IsVector for vek::Vec3<f64> {}
+#[cfg(feature = "ultraviolet")]
+impl From<Quaternion> for ultraviolet::DRotor3 {
+    fn from(val: Quaternion) -> Self {
+        Self::from_quaternion_array(val.into())
+    }
 }

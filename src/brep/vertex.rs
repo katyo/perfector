@@ -1,4 +1,4 @@
-use super::{IsPoint, Point, Shape};
+use super::{IsShape, Point, Shape};
 use core::mem::size_of;
 use cpp::{cpp, cpp_class};
 use static_assertions::const_assert_eq;
@@ -7,6 +7,8 @@ cpp! {{
     #include <memory>
 
     #include <gp_Pnt.hxx>
+
+    #include <BRep_Tool.hxx>
 
     #include <TopoDS_Shape.hxx>
     #include <TopoDS_Vertex.hxx>
@@ -33,9 +35,9 @@ impl Default for Vertex {
     }
 }
 
-impl<P: IsPoint> From<&P> for Vertex {
-    fn from(p: &P) -> Self {
-        Self::from_point(unsafe { &*(p as *const _ as *const _) })
+impl<P: AsRef<Point>> From<P> for Vertex {
+    fn from(p: P) -> Self {
+        Self::from_point(p.as_ref())
     }
 }
 
@@ -48,25 +50,17 @@ impl Vertex {
         };
         Self(v)
     }
-}
 
-impl core::ops::Deref for Vertex {
-    type Target = Shape;
-    fn deref(&self) -> &Self::Target {
+    fn get_point(&self) -> Point {
         unsafe {
-            cpp!([self as "const TopoDS_Vertex*"] -> &Shape as "const TopoDS_Shape*" {
-                return self;
+            cpp!([self as "const unique_ptr<TopoDS_Vertex>*"] -> Point as "gp_Pnt" {
+                return BRep_Tool::Pnt(**self);
             })
         }
     }
-}
 
-impl core::ops::DerefMut for Vertex {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            cpp!([self as "TopoDS_Vertex*"] -> &mut Shape as "TopoDS_Shape*" {
-                return self;
-            })
-        }
+    /// Get coords of vertex
+    pub fn point<T: From<Point>>(&self) -> T {
+        self.get_point().into()
     }
 }

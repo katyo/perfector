@@ -1,4 +1,4 @@
-use super::{Edge, Shape};
+use super::{Edge, IsShape, Shape};
 use core::mem::size_of;
 use cpp::{cpp, cpp_class};
 use static_assertions::const_assert_eq;
@@ -38,27 +38,6 @@ const_assert_eq!(size_of::<Wire>(), size_of::<*const u8>());
 
 shape_impls! {
     Wire;
-}
-
-impl core::ops::Deref for Wire {
-    type Target = Shape;
-    fn deref(&self) -> &Self::Target {
-        unsafe {
-            cpp!([self as "const TopoDS_Wire*"] -> &Shape as "const TopoDS_Shape*" {
-                return self;
-            })
-        }
-    }
-}
-
-impl core::ops::DerefMut for Wire {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            cpp!([self as "TopoDS_Wire*"] -> &mut Shape as "TopoDS_Shape*" {
-                return self;
-            })
-        }
-    }
 }
 
 cpp_class!(unsafe struct MakeWire as "unique_ptr<BRepBuilderAPI_MakeWire>");
