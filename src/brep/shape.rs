@@ -57,7 +57,7 @@ enum_impls! {
         /// A group of any of the shapes below.
         Compound,
         /// A set of solids connected by their faces. This expands the notions of WIRE and SHELL to solids.
-        Compsolid,
+        CompSolid,
         /// A part of 3D space bounded by shells.
         Solid,
         /// A set of faces connected by some of the edges of their wire boundaries. A shell can be open or closed.

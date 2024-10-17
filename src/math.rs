@@ -1,6 +1,8 @@
 mod transformation;
+mod angle;
 
 pub use transformation::*;
+pub use angle::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Default)]
 pub struct Point {
@@ -15,6 +17,12 @@ impl Point {
     }
 }
 
+impl AsRef<Point> for Point {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Default)]
 pub struct Vector {
     pub x: f64,
@@ -25,6 +33,12 @@ pub struct Vector {
 impl Vector {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
+    }
+}
+
+impl AsRef<Vector> for Vector {
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 
@@ -45,6 +59,70 @@ impl Default for Quaternion {
 impl Quaternion {
     pub fn new(x: f64, y: f64, z: f64, w: f64) -> Self {
         Self { x, y, z, w }
+    }
+}
+
+impl AsRef<Quaternion> for Quaternion {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Default)]
+pub struct Axis1 {
+    pub point: Point,
+    pub dir: Vector,
+}
+
+impl Axis1 {
+    pub fn new(point: impl Into<Point>, dir: impl Into<Vector>) -> Self {
+        Self { point: point.into(), dir: dir.into() }
+    }
+}
+
+impl<P, V> From<(P, V)> for Axis1
+where
+    Point: From<P>,
+    Vector: From<V>,
+{
+    fn from((p, v): (P, V)) -> Self {
+        Self::new(p, v)
+    }
+}
+
+impl AsRef<Axis1> for Axis1 {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Default)]
+pub struct Axis3 {
+    pub axis: Axis1,
+    pub ydir: Vector,
+    pub xdir: Vector,
+}
+
+impl Axis3 {
+    pub fn new(axis: impl Into<Axis1>, ydir: impl Into<Vector>, xdir: impl Into<Vector>) -> Self {
+        Self { axis: axis.into(), ydir: ydir.into(), xdir: xdir.into() }
+    }
+}
+
+impl<A, Y, X> From<(A, Y, X)> for Axis3
+where
+    Axis1: From<A>,
+    Vector: From<Y>,
+    Vector: From<X>,
+{
+    fn from((a, y, x): (A, Y, X)) -> Self {
+        Self::new(a, y, x)
+    }
+}
+
+impl AsRef<Axis3> for Axis3 {
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 

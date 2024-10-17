@@ -1,4 +1,4 @@
-use super::{IsShape, Point, Shape, Vertex};
+use super::{IsShape, Point, Shape, Vertex, Axis3, Axis1};
 use core::mem::size_of;
 use cpp::{cpp, cpp_class};
 use static_assertions::const_assert_eq;
@@ -7,6 +7,10 @@ cpp! {{
     #include <memory>
 
     #include <gp_Pnt.hxx>
+    #include <gp_Ax1.hxx>
+    #include <gp_Ax2.hxx>
+    #include <gp_Lin.hxx>
+    #include <gp_Circ.hxx>
 
     #include <TopoDS_Shape.hxx>
     #include <TopoDS_Vertex.hxx>
@@ -49,17 +53,77 @@ shape_impls! {
 impl<A: AsRef<Point>, B: AsRef<Point>> TryFrom<(A, B)> for Edge {
     type Error = EdgeError;
     fn try_from((p1, p2): (A, B)) -> Result<Self, Self::Error> {
-        Self::line_from_points(p1.as_ref(), p2.as_ref())
+        Self::make_segment(p1.as_ref(), p2.as_ref())
+    }
+}
+
+impl TryFrom<&Axis1> for Edge {
+    type Error = EdgeError;
+    fn try_from(axis: &Axis1) -> Result<Self, Self::Error> {
+        Self::make_line(axis)
+    }
+}
+
+impl TryFrom<(&Axis3, f64)> for Edge {
+    type Error = EdgeError;
+    fn try_from((axis, radius): (&Axis3, f64)) -> Result<Self, Self::Error> {
+        Self::make_circle(axis, radius)
     }
 }
 
 impl Edge {
-    fn line_from_points(p1: &Point, p2: &Point) -> Result<Self, EdgeError> {
+    fn make_segment(p1: &Point, p2: &Point) -> Result<Self, EdgeError> {
         let mut e = EdgePtr::default();
         let r = &mut e;
         let rc = unsafe {
             cpp!([p1 as "const gp_Pnt*", p2 as "const gp_Pnt*", r as "unique_ptr<TopoDS_Edge>*"] -> u32 as "BRepBuilderAPI_EdgeError" {
                 BRepBuilderAPI_MakeEdge b(*p1, *p2);
+                auto rc = b.Error();
+                if (rc == BRepBuilderAPI_EdgeDone) {
+                    *r = unique_ptr<TopoDS_Edge>(new TopoDS_Edge(b));
+                }
+                return rc;
+            })
+        };
+        if let Ok(err) = rc.try_into() {
+            Err(err)
+        } else {
+            Ok(Self(e))
+        }
+    }
+
+    fn make_line(axis: &Axis1) -> Result<Self, EdgeError> {
+        let mut e = EdgePtr::default();
+        let r = &mut e;
+        let rc = unsafe {
+            cpp!([axis as "const gp_Ax1*", r as "unique_ptr<TopoDS_Edge>*"] -> u32 as "BRepBuilderAPI_EdgeError" {
+                gp_Lin lin(*axis);
+                BRepBuilderAPI_MakeEdge b(lin);
+                auto rc = b.Error();
+                if (rc == BRepBuilderAPI_EdgeDone) {
+                    *r = unique_ptr<TopoDS_Edge>(new TopoDS_Edge(b));
+                }
+                return rc;
+            })
+        };
+        if let Ok(err) = rc.try_into() {
+            Err(err)
+        } else {
+            Ok(Self(e))
+        }
+    }
+
+    pub fn circle(axis: impl AsRef<Axis3>, radius: f64) -> Result<Self, EdgeError> {
+        Self::make_circle(axis.as_ref(), radius)
+    }
+
+    fn make_circle(axis: &Axis3, radius: f64) -> Result<Self, EdgeError> {
+        let mut e = EdgePtr::default();
+        let r = &mut e;
+        let rc = unsafe {
+            cpp!([axis as "const gp_Ax2*", radius as "Standard_Real", r as "unique_ptr<TopoDS_Edge>*"] -> u32 as "BRepBuilderAPI_EdgeError" {
+                gp_Circ circ(*axis, radius);
+                BRepBuilderAPI_MakeEdge b(circ);
                 auto rc = b.Error();
                 if (rc == BRepBuilderAPI_EdgeDone) {
                     *r = unique_ptr<TopoDS_Edge>(new TopoDS_Edge(b));

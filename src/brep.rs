@@ -69,6 +69,9 @@ mod shell;
 mod solid;
 mod vertex;
 mod wire;
+mod compsolid;
+mod compound;
+mod ops;
 
 pub use edge::*;
 pub use face::*;
@@ -77,6 +80,8 @@ pub use shell::*;
 pub use solid::*;
 pub use vertex::*;
 pub use wire::*;
+pub use compsolid::*;
+pub use compound::*;
 
 use super::math::*;
 
